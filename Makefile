@@ -5,7 +5,7 @@
 	nasm -f elf64 -o $@ $<
 
 %.s: %.int
-	ocaml compiler.ml $< > $@
+	dune exec ./bin/compile.exe $< > $@
 
 clean:
-	rm *.run *.o *.s
+	rm *.run *.o *.s *.out
