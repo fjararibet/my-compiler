@@ -7,5 +7,8 @@
 %.s: %.int
 	dune exec ./bin/compile.exe $< > $@
 
+runtests:
+	dune exec ./test/test_compiler.exe
+
 clean:
 	rm *.run *.o *.s *.out
