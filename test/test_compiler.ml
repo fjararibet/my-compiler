@@ -32,17 +32,17 @@ let test_parse_compound () =
     (Add1 (Sub1 (Sub1 (Num 5L))))
 
 let test_compile_exp_int () =
-  check ins_list "same instruction list" (compile_exp (Num 5L))
+  check ins_list "same instruction list" (compile_exp (Num 5L) [])
     [ IMov (Reg RAX, Const 5L) ]
 
 let test_compile_exp_add1 () =
   check ins_list "same instruction list"
-    (compile_exp (Add1 (Num 5L)))
+    (compile_exp (Add1 (Num 5L)) [])
     [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const 1L) ]
 
 let test_compile_exp_sub1 () =
   check ins_list "same instruction list"
-    (compile_exp (Sub1 (Num 5L)))
+    (compile_exp (Sub1 (Num 5L)) [])
     [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const (-1L)) ]
 
 let () =
