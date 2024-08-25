@@ -11,4 +11,5 @@ runtests:
 	dune exec ./test/test_compiler.exe
 
 clean:
-	rm *.run *.o *.s *.out
+	rm -rf _build
+	rm *.run

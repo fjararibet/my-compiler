@@ -34,8 +34,6 @@ let rec compile_exp (e : exp) : instruction list =
   | Add1 e -> compile_exp e @ [ IAdd (Reg RAX, Const 1L) ]
   | Sub1 e -> compile_exp e @ [ IAdd (Reg RAX, Const (-1L)) ]
 
-(* A very sophisticated compiler - insert the given integer into the mov
-   instruction at the correct place *)
 let compile (e : exp) : string =
   let instructions = compile_exp e in
   let asm_string = asm_to_string (instructions @ [ IRet ]) in
