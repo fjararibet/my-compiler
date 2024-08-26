@@ -1,3 +1,3 @@
 (executable
   (name test_compiler)
-  (libraries compiler alcotest containers))
+  (libraries lib alcotest containers))

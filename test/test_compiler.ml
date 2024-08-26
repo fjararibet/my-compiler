@@ -1,4 +1,4 @@
-open Compiler
+open Lib.Compiler
 open Alcotest
 
 let exp : exp testable =

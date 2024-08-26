@@ -1,4 +1,4 @@
 (library
- (name compiler)
- (modules compiler)
+ (name lib)
+ (modules compiler utils)
  (libraries containers))

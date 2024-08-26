@@ -1,4 +1,4 @@
-open Compiler
+open Lib.Compiler
 
 let sexp_from_file : string -> CCSexp.sexp =
  fun filename ->
