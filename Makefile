@@ -5,7 +5,7 @@
 	nasm -f elf64 -o $@ $<
 
 %.s: %.int
-	dune exec ./bin/compile.exe $< > $@
+	dune exec ./bin/main.exe $< > $@
 
 runtests:
 	dune exec ./test/test_compiler.exe

@@ -58,22 +58,22 @@ let rec asm_to_string (asm : instruction list) : string =
       ^ asm_to_string rest
   | IRet :: rest -> "ret" ^ asm_to_string rest
 
-let rec compile_exp (exp : exp) (env : env) : instruction list =
+let rec compile (exp : exp) (env : env) : instruction list =
   match exp with
   | Num n -> [ IMov (Reg RAX, Const n) ]
   | Id x ->
       let slot = lookup x env in
       [ IMov (Reg RAX, RegOffset (RSP, slot)) ]
-  | Add1 e -> compile_exp e env @ [ IAdd (Reg RAX, Const 1L) ]
-  | Sub1 e -> compile_exp e env @ [ IAdd (Reg RAX, Const (-1L)) ]
+  | Add1 e -> compile e env @ [ IAdd (Reg RAX, Const 1L) ]
+  | Sub1 e -> compile e env @ [ IAdd (Reg RAX, Const (-1L)) ]
   | Let (x, value, body) ->
       let env', slot = add x env in
-      compile_exp value env
+      compile value env
       @ [ IMov (RegOffset (RSP, slot), Reg RAX) ]
-      @ compile_exp body env'
+      @ compile body env'
 
-let compile (e : exp) : string =
-  let instructions = compile_exp e [] in
+let compile_prog (e : exp) : string =
+  let instructions = compile e [] in
   let asm_string = asm_to_string (instructions @ [ IRet ]) in
   let prelude =
     "\nsection .text\nglobal our_code_starts_here\nour_code_starts_here:"
