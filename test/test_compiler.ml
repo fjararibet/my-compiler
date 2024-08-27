@@ -92,12 +92,12 @@ let test_compile_int () =
 
 let test_compile_add1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const 1L) ]
+    [ IMov (Reg RAX, Const 5L); IInc (Reg RAX) ]
     (compile (UnaryOp (Add1, Num 5L)) [])
 
 let test_compile_sub1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const (-1L)) ]
+    [ IMov (Reg RAX, Const 5L); IDec (Reg RAX) ]
     (compile (UnaryOp (Sub1, Num 5L)) [])
 
 let test_compile_double () =
@@ -109,9 +109,9 @@ let test_compile_compound () =
   check ins_list "same instruction list"
     [
       IMov (Reg RAX, Const 5L);
-      IAdd (Reg RAX, Const (-1L));
-      IAdd (Reg RAX, Const (-1L));
-      IAdd (Reg RAX, Const 1L);
+      IDec (Reg RAX);
+      IDec (Reg RAX);
+      IInc (Reg RAX);
       IAdd (Reg RAX, Reg RAX);
     ]
     (compile
@@ -133,16 +133,16 @@ let test_compile_nested_let () =
       IMov (Reg RAX, Const 10L);
       IMov (RegOffset (RSP, 1), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 1));
-      IAdd (Reg RAX, Const 1L);
+      IInc (Reg RAX);
       IMov (RegOffset (RSP, 2), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IAdd (Reg RAX, Const 1L);
+      IInc (Reg RAX);
       IMov (RegOffset (RSP, 3), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IAdd (Reg RAX, Const 1L);
+      IInc (Reg RAX);
       IMov (RegOffset (RSP, 2), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IAdd (Reg RAX, Const 1L);
+      IInc (Reg RAX);
     ]
     (compile
        (Let
@@ -162,12 +162,12 @@ let test_asm_to_string_int () =
     (asm_to_string [ IMov (Reg RAX, Const 5L) ])
 
 let test_asm_to_string_add1 () =
-  check string "same asm string" "mov RAX, 5\nadd RAX, 1\n"
-    (asm_to_string [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const 1L) ])
+  check string "same asm string" "mov RAX, 5\ninc RAX\n"
+    (asm_to_string [ IMov (Reg RAX, Const 5L); IInc (Reg RAX) ])
 
 let test_asm_to_string_sub1 () =
-  check string "same asm string" "mov RAX, 5\nadd RAX, -1\n"
-    (asm_to_string [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Const (-1L)) ])
+  check string "same asm string" "mov RAX, 5\ndec RAX\n"
+    (asm_to_string [ IMov (Reg RAX, Const 5L); IDec (Reg RAX) ])
 
 let test_asm_to_string_double () =
   check string "same asm string" "mov RAX, 5\nadd RAX, RAX\n"
@@ -175,13 +175,13 @@ let test_asm_to_string_double () =
 
 let test_asm_to_string_compound () =
   check string "same asm string"
-    "mov RAX, 5\nadd RAX, -1\nadd RAX, -1\nadd RAX, 1\nadd RAX, RAX\n"
+    "mov RAX, 5\ndec RAX\ndec RAX\ninc RAX\nadd RAX, RAX\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 5L);
-         IAdd (Reg RAX, Const (-1L));
-         IAdd (Reg RAX, Const (-1L));
-         IAdd (Reg RAX, Const 1L);
+         IDec (Reg RAX);
+         IDec (Reg RAX);
+         IInc (Reg RAX);
          IAdd (Reg RAX, Reg RAX);
        ])
 
@@ -200,31 +200,31 @@ let test_asm_to_string_nested_let () =
     "mov RAX, 10\n\
      mov [RSP - 8*1], RAX\n\
      mov RAX, [RSP - 8*1]\n\
-     add RAX, 1\n\
+     inc RAX\n\
      mov [RSP - 8*2], RAX\n\
      mov RAX, [RSP - 8*2]\n\
-     add RAX, 1\n\
+     inc RAX\n\
      mov [RSP - 8*3], RAX\n\
      mov RAX, [RSP - 8*2]\n\
-     add RAX, 1\n\
+     inc RAX\n\
      mov [RSP - 8*2], RAX\n\
      mov RAX, [RSP - 8*2]\n\
-     add RAX, 1\n"
+     inc RAX\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 10L);
          IMov (RegOffset (RSP, 1), Reg RAX);
          IMov (Reg RAX, RegOffset (RSP, 1));
-         IAdd (Reg RAX, Const 1L);
+         IInc (Reg RAX);
          IMov (RegOffset (RSP, 2), Reg RAX);
          IMov (Reg RAX, RegOffset (RSP, 2));
-         IAdd (Reg RAX, Const 1L);
+         IInc (Reg RAX);
          IMov (RegOffset (RSP, 3), Reg RAX);
          IMov (Reg RAX, RegOffset (RSP, 2));
-         IAdd (Reg RAX, Const 1L);
+         IInc (Reg RAX);
          IMov (RegOffset (RSP, 2), Reg RAX);
          IMov (Reg RAX, RegOffset (RSP, 2));
-         IAdd (Reg RAX, Const 1L);
+         IInc (Reg RAX);
        ])
 
 let () =

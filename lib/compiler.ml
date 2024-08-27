@@ -17,7 +17,13 @@ type arg =
   | RegOffset of
       reg * int (* RegOffset(reg, i) represents address [reg + 8*i] *)
 
-type instruction = IAdd of arg * arg | IMov of arg * arg | IRet
+type instruction =
+  | IAdd of arg * arg
+  | IMov of arg * arg
+  | IInc of arg
+  | IDec of arg
+  | IRet
+
 type env = (string * int) list
 
 let rec lookup (name : string) (env : env) : int =
@@ -36,7 +42,8 @@ let rec string_of_exp (exp : exp) : string =
   match exp with
   | Num n -> Int64.to_string n
   | Id x -> x
-  | UnaryOp (op, e) -> sprintf "(%s %s)" (string_of_unary_op op) (string_of_exp e)
+  | UnaryOp (op, e) ->
+      sprintf "(%s %s)" (string_of_unary_op op) (string_of_exp e)
   | Let (x, value, body) ->
       sprintf "(let (%s %s) %s)" x (string_of_exp value) (string_of_exp body)
 
@@ -59,6 +66,8 @@ let rec asm_to_string (asm : instruction list) : string =
   | IAdd (a1, a2) :: rest ->
       sprintf "add %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
+  | IInc a :: rest -> sprintf "inc %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IDec a :: rest -> sprintf "dec %s\n" (string_of_arg a) ^ asm_to_string rest
   | IRet :: rest -> "ret" ^ asm_to_string rest
 
 let rec compile (exp : exp) (env : env) : instruction list =
@@ -67,8 +76,8 @@ let rec compile (exp : exp) (env : env) : instruction list =
   | Id x ->
       let slot = lookup x env in
       [ IMov (Reg RAX, RegOffset (RSP, slot)) ]
-  | UnaryOp (Add1, e) -> compile e env @ [ IAdd (Reg RAX, Const 1L) ]
-  | UnaryOp (Sub1, e) -> compile e env @ [ IAdd (Reg RAX, Const (-1L)) ]
+  | UnaryOp (Add1, e) -> compile e env @ [ IInc (Reg RAX) ]
+  | UnaryOp (Sub1, e) -> compile e env @ [ IDec (Reg RAX) ]
   | UnaryOp (Double, e) -> compile e env @ [ IAdd (Reg RAX, Reg RAX) ]
   | Let (x, value, body) ->
       let env', slot = add x env in
@@ -88,9 +97,9 @@ let rec parse (sexp : sexp) : exp =
   match sexp with
   | `Atom a -> (
       match Int64.of_string_opt a with Some n -> Num n | None -> Id a)
-  | `List [ `Atom "add1"; exp ] -> UnaryOp (Add1, (parse exp))
-  | `List [ `Atom "sub1"; exp ] -> UnaryOp (Sub1, (parse exp))
-  | `List [ `Atom "double"; exp ] -> UnaryOp (Double, (parse exp))
+  | `List [ `Atom "add1"; exp ] -> UnaryOp (Add1, parse exp)
+  | `List [ `Atom "sub1"; exp ] -> UnaryOp (Sub1, parse exp)
+  | `List [ `Atom "double"; exp ] -> UnaryOp (Double, parse exp)
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)
   | _ -> failwith "Not a valid exp"
