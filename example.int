@@ -1,5 +1,1 @@
-(let (a 10)
- (let (c (let (b (add1 a))
-          (let (d (add1 b))
-           (add1 b)))) 
-   (double c)))
+(* (* 1 2) (* 3 4))

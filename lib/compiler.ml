@@ -2,14 +2,16 @@ open CCSexp
 open Printf
 
 type unary_op = Add1 | Sub1 | Double
+type binary_op = Plus | Minus | Times
 
 type exp =
   | Num of int64
   | UnaryOp of unary_op * exp
+  | BinaryOp of binary_op * exp * exp
   | Id of string
   | Let of string * exp * exp
 
-type reg = RAX | RSP
+type reg = RAX | RBX | RSP
 
 type arg =
   | Const of int64
@@ -19,6 +21,8 @@ type arg =
 
 type instruction =
   | IAdd of arg * arg
+  | ISub of arg * arg
+  | IMul of arg
   | IMov of arg * arg
   | IInc of arg
   | IDec of arg
@@ -38,17 +42,23 @@ let add (name : string) (env : env) : env * int =
 let string_of_unary_op (op : unary_op) : string =
   match op with Add1 -> "add1" | Sub1 -> "sub1" | Double -> "double"
 
+let string_of_binary_op (op : binary_op) : string =
+  match op with Plus -> "+" | Minus -> "-" | Times -> "*"
+
 let rec string_of_exp (exp : exp) : string =
   match exp with
   | Num n -> Int64.to_string n
   | Id x -> x
   | UnaryOp (op, e) ->
       sprintf "(%s %s)" (string_of_unary_op op) (string_of_exp e)
+  | BinaryOp (op, e1, e2) ->
+      sprintf "(%s %s %s)" (string_of_binary_op op) (string_of_exp e1)
+        (string_of_exp e2)
   | Let (x, value, body) ->
       sprintf "(let (%s %s) %s)" x (string_of_exp value) (string_of_exp body)
 
 let string_of_reg (reg : reg) : string =
-  match reg with RAX -> "RAX" | RSP -> "RSP"
+  match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP"
 
 let string_of_arg (arg : arg) : string =
   match arg with
@@ -66,9 +76,31 @@ let rec asm_to_string (asm : instruction list) : string =
   | IAdd (a1, a2) :: rest ->
       sprintf "add %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
+  | ISub (a1, a2) :: rest ->
+      sprintf "sub %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
+  | IMul a :: rest -> sprintf "mul %s\n" (string_of_arg a) ^ asm_to_string rest
   | IInc a :: rest -> sprintf "inc %s\n" (string_of_arg a) ^ asm_to_string rest
   | IDec a :: rest -> sprintf "dec %s\n" (string_of_arg a) ^ asm_to_string rest
   | IRet :: rest -> "ret" ^ asm_to_string rest
+
+let gensym =
+  let counter = ref 0 in
+  fun (prefix : string) ->
+    counter := !counter + 1;
+    sprintf "%s%d" prefix !counter
+
+let compile_unary (op : unary_op) =
+  match op with
+  | Add1 -> [ IInc (Reg RAX) ]
+  | Sub1 -> [ IDec (Reg RAX) ]
+  | Double -> [ IAdd (Reg RAX, Reg RAX) ]
+
+let compile_binary (op : binary_op) (slot : int) =
+  match op with
+  | Plus -> [ IAdd (Reg RAX, RegOffset (RSP, slot)) ]
+  | Minus -> [ ISub (Reg RAX, RegOffset (RSP, slot)) ]
+  | Times -> [ IMov (Reg RBX, RegOffset (RSP, slot)) ] @ [ IMul (Reg RBX) ]
 
 let rec compile (exp : exp) (env : env) : instruction list =
   match exp with
@@ -76,9 +108,16 @@ let rec compile (exp : exp) (env : env) : instruction list =
   | Id x ->
       let slot = lookup x env in
       [ IMov (Reg RAX, RegOffset (RSP, slot)) ]
-  | UnaryOp (Add1, e) -> compile e env @ [ IInc (Reg RAX) ]
-  | UnaryOp (Sub1, e) -> compile e env @ [ IDec (Reg RAX) ]
-  | UnaryOp (Double, e) -> compile e env @ [ IAdd (Reg RAX, Reg RAX) ]
+  | UnaryOp (op, e) -> compile e env @ compile_unary op
+  | BinaryOp (op, e1, e2) ->
+      let env', slot1 = add (gensym "#x#") env in
+      let _, slot2 = add (gensym "#x#") env' in
+      compile e1 env
+      @ [ IMov (RegOffset (RSP, slot1), Reg RAX) ]
+      @ compile e2 env'
+      @ [ IMov (RegOffset (RSP, slot2), Reg RAX) ]
+      @ [ IMov (Reg RAX, RegOffset (RSP, slot1)) ]
+      @ compile_binary op slot2
   | Let (x, value, body) ->
       let env', slot = add x env in
       compile value env
@@ -100,6 +139,9 @@ let rec parse (sexp : sexp) : exp =
   | `List [ `Atom "add1"; exp ] -> UnaryOp (Add1, parse exp)
   | `List [ `Atom "sub1"; exp ] -> UnaryOp (Sub1, parse exp)
   | `List [ `Atom "double"; exp ] -> UnaryOp (Double, parse exp)
+  | `List [ `Atom "+"; exp1; exp2 ] -> BinaryOp (Plus, parse exp1, parse exp2)
+  | `List [ `Atom "-"; exp1; exp2 ] -> BinaryOp (Minus, parse exp1, parse exp2)
+  | `List [ `Atom "*"; exp1; exp2 ] -> BinaryOp (Times, parse exp1, parse exp2)
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)
   | _ -> failwith "Not a valid exp"
