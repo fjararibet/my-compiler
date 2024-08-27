@@ -1,10 +1,11 @@
 open CCSexp
 open Printf
 
+type unary_op = Add1 | Sub1 | Double
+
 type exp =
   | Num of int64
-  | Add1 of exp
-  | Sub1 of exp
+  | UnaryOp of unary_op * exp
   | Id of string
   | Let of string * exp * exp
 
@@ -28,12 +29,14 @@ let add (name : string) (env : env) : env * int =
   let slot = 1 + List.length env in
   ((name, slot) :: env, slot)
 
+let string_of_unary_op (op : unary_op) : string =
+  match op with Add1 -> "add1" | Sub1 -> "sub1" | Double -> "double"
+
 let rec string_of_exp (exp : exp) : string =
   match exp with
   | Num n -> Int64.to_string n
   | Id x -> x
-  | Add1 e -> sprintf "(add1 %s)" (string_of_exp e)
-  | Sub1 e -> sprintf "(sub1 %s)" (string_of_exp e)
+  | UnaryOp (op, e) -> sprintf "(%s %s)" (string_of_unary_op op) (string_of_exp e)
   | Let (x, value, body) ->
       sprintf "(let (%s %s) %s)" x (string_of_exp value) (string_of_exp body)
 
@@ -64,8 +67,9 @@ let rec compile (exp : exp) (env : env) : instruction list =
   | Id x ->
       let slot = lookup x env in
       [ IMov (Reg RAX, RegOffset (RSP, slot)) ]
-  | Add1 e -> compile e env @ [ IAdd (Reg RAX, Const 1L) ]
-  | Sub1 e -> compile e env @ [ IAdd (Reg RAX, Const (-1L)) ]
+  | UnaryOp (Add1, e) -> compile e env @ [ IAdd (Reg RAX, Const 1L) ]
+  | UnaryOp (Sub1, e) -> compile e env @ [ IAdd (Reg RAX, Const (-1L)) ]
+  | UnaryOp (Double, e) -> compile e env @ [ IAdd (Reg RAX, Reg RAX) ]
   | Let (x, value, body) ->
       let env', slot = add x env in
       compile value env
@@ -84,8 +88,9 @@ let rec parse (sexp : sexp) : exp =
   match sexp with
   | `Atom a -> (
       match Int64.of_string_opt a with Some n -> Num n | None -> Id a)
-  | `List [ `Atom "add1"; exp ] -> Add1 (parse exp)
-  | `List [ `Atom "sub1"; exp ] -> Sub1 (parse exp)
+  | `List [ `Atom "add1"; exp ] -> UnaryOp (Add1, (parse exp))
+  | `List [ `Atom "sub1"; exp ] -> UnaryOp (Sub1, (parse exp))
+  | `List [ `Atom "double"; exp ] -> UnaryOp (Double, (parse exp))
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)
   | _ -> failwith "Not a valid exp"

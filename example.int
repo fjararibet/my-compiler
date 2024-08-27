@@ -2,4 +2,4 @@
  (let (c (let (b (add1 a))
           (let (d (add1 b))
            (add1 b)))) 
-   (add1 c)))
+   (double c)))
