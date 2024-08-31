@@ -10,6 +10,7 @@ type exp =
   | BinaryOp of binary_op * exp * exp
   | Id of string
   | Let of string * exp * exp
+  | If of exp * exp * exp
 
 type reg = RAX | RBX | RSP
 
@@ -26,6 +27,10 @@ type instruction =
   | IMov of arg * arg
   | IInc of arg
   | IDec of arg
+  | ILabel of string
+  | IJmp of string
+  | IJe of string
+  | ICmp of arg * arg
   | IRet
 
 type env = (string * int) list
@@ -56,6 +61,7 @@ let rec string_of_exp (exp : exp) : string =
         (string_of_exp e2)
   | Let (x, value, body) ->
       sprintf "(let (%s %s) %s)" x (string_of_exp value) (string_of_exp body)
+  | If (cond, true_path, false_path) -> sprintf "(if %s %s %s)" (string_of_exp cond) (string_of_exp true_path) (string_of_exp false_path)
 
 let string_of_reg (reg : reg) : string =
   match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP"
@@ -82,6 +88,10 @@ let rec asm_to_string (asm : instruction list) : string =
   | IMul a :: rest -> sprintf "mul %s\n" (string_of_arg a) ^ asm_to_string rest
   | IInc a :: rest -> sprintf "inc %s\n" (string_of_arg a) ^ asm_to_string rest
   | IDec a :: rest -> sprintf "dec %s\n" (string_of_arg a) ^ asm_to_string rest
+  | ILabel label :: rest  -> sprintf "%s:\n" label ^ asm_to_string rest
+  | ICmp (a1, a2) :: rest -> sprintf "cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2) ^ asm_to_string rest
+  | IJmp label :: rest -> sprintf "jmp %s\n" label ^ asm_to_string rest
+  | IJe label :: rest -> sprintf "je %s\n" label ^ asm_to_string rest
   | IRet :: rest -> "ret" ^ asm_to_string rest
 
 let gensym =
@@ -123,6 +133,17 @@ let rec compile (exp : exp) (env : env) : instruction list =
       compile value env
       @ [ IMov (RegOffset (RSP, slot), Reg RAX) ]
       @ compile body env'
+  | If (cond, true_path, false_path) ->
+      let else_label = gensym "if_false" in
+      let done_label = gensym "done" in
+      compile cond env
+      @ [ ICmp (Reg RAX, Const 0L) ]
+      @ [ IJe else_label ]
+      @ compile true_path env
+      @ [ IJmp done_label]
+      @ [ ILabel else_label ]
+      @ compile false_path env
+      @ [ ILabel done_label ]
 
 let compile_prog (e : exp) : string =
   let instructions = compile e [] in
@@ -144,6 +165,8 @@ let rec parse (sexp : sexp) : exp =
   | `List [ `Atom "*"; exp1; exp2 ] -> BinaryOp (Times, parse exp1, parse exp2)
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)
+  | `List [ `Atom "if"; cond; true_path; false_path ] ->
+      If (parse cond, parse true_path, parse false_path)
   | _ -> failwith "Not a valid exp"
 
 let sexp_from_file : string -> CCSexp.sexp =
