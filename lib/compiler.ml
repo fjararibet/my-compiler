@@ -1,11 +1,12 @@
 open CCSexp
 open Printf
 
-type unary_op = Add1 | Sub1 | Double
-type binary_op = Plus | Minus | Times
+type unary_op = Add1 | Sub1 | Double | Not
+type binary_op = Plus | Minus | Times | And | Or
 
 type exp =
   | Num of int64
+  | Bool of bool
   | UnaryOp of unary_op * exp
   | BinaryOp of binary_op * exp * exp
   | Id of string
@@ -31,6 +32,10 @@ type instruction =
   | IJmp of string
   | IJe of string
   | ICmp of arg * arg
+  | ISar of arg * arg
+  | IAnd of arg * arg
+  | IOr of arg * arg
+  | IXor of arg * arg
   | IRet
 
 type env = (string * int) list
@@ -45,14 +50,15 @@ let add (name : string) (env : env) : env * int =
   ((name, slot) :: env, slot)
 
 let string_of_unary_op (op : unary_op) : string =
-  match op with Add1 -> "add1" | Sub1 -> "sub1" | Double -> "double"
+  match op with Add1 -> "add1" | Sub1 -> "sub1" | Double -> "double" | Not -> "not"
 
 let string_of_binary_op (op : binary_op) : string =
-  match op with Plus -> "+" | Minus -> "-" | Times -> "*"
+  match op with Plus -> "+" | Minus -> "-" | Times -> "*" | And -> "and" | Or -> "Or"
 
 let rec string_of_exp (exp : exp) : string =
   match exp with
   | Num n -> Int64.to_string n
+  | Bool b -> string_of_bool b
   | Id x -> x
   | UnaryOp (op, e) ->
       sprintf "(%s %s)" (string_of_unary_op op) (string_of_exp e)
@@ -61,7 +67,9 @@ let rec string_of_exp (exp : exp) : string =
         (string_of_exp e2)
   | Let (x, value, body) ->
       sprintf "(let (%s %s) %s)" x (string_of_exp value) (string_of_exp body)
-  | If (cond, true_path, false_path) -> sprintf "(if %s %s %s)" (string_of_exp cond) (string_of_exp true_path) (string_of_exp false_path)
+  | If (cond, true_path, false_path) ->
+      sprintf "(if %s %s %s)" (string_of_exp cond) (string_of_exp true_path)
+        (string_of_exp false_path)
 
 let string_of_reg (reg : reg) : string =
   match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP"
@@ -88,10 +96,24 @@ let rec asm_to_string (asm : instruction list) : string =
   | IMul a :: rest -> sprintf "mul %s\n" (string_of_arg a) ^ asm_to_string rest
   | IInc a :: rest -> sprintf "inc %s\n" (string_of_arg a) ^ asm_to_string rest
   | IDec a :: rest -> sprintf "dec %s\n" (string_of_arg a) ^ asm_to_string rest
-  | ILabel label :: rest  -> sprintf "%s:\n" label ^ asm_to_string rest
-  | ICmp (a1, a2) :: rest -> sprintf "cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2) ^ asm_to_string rest
+  | ILabel label :: rest -> sprintf "%s:\n" label ^ asm_to_string rest
+  | ICmp (a1, a2) :: rest ->
+      sprintf "cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
   | IJmp label :: rest -> sprintf "jmp %s\n" label ^ asm_to_string rest
   | IJe label :: rest -> sprintf "je %s\n" label ^ asm_to_string rest
+  | ISar (a1, a2) :: rest ->
+      sprintf "sar %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
+  | IAnd (a1, a2) :: rest ->
+      sprintf "and %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
+  | IOr (a1, a2) :: rest ->
+      sprintf "or %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
+  | IXor (a1, a2) :: rest ->
+      sprintf "xor %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest
   | IRet :: rest -> "ret" ^ asm_to_string rest
 
 let gensym =
@@ -102,19 +124,35 @@ let gensym =
 
 let compile_unary (op : unary_op) =
   match op with
-  | Add1 -> [ IInc (Reg RAX) ]
-  | Sub1 -> [ IDec (Reg RAX) ]
+  | Add1 -> [ IAdd (Reg RAX, Const 2L) ]
+  | Sub1 -> [ ISub (Reg RAX, Const 2L) ]
+  | Not -> [ IMov (Reg RBX, Const (Int64.of_string "0x8000000000000000")); IXor (Reg RAX, Reg RBX ) ]
   | Double -> [ IAdd (Reg RAX, Reg RAX) ]
 
 let compile_binary (op : binary_op) (slot : int) =
   match op with
   | Plus -> [ IAdd (Reg RAX, RegOffset (RSP, slot)) ]
   | Minus -> [ ISub (Reg RAX, RegOffset (RSP, slot)) ]
-  | Times -> [ IMov (Reg RBX, RegOffset (RSP, slot)) ] @ [ IMul (Reg RBX) ]
+  | Times ->
+      [ IMov (Reg RBX, RegOffset (RSP, slot)) ]
+      @ [ IMul (Reg RBX) ]
+      @ [ ISar (Reg RAX, Const 1L) ]
+  | And -> [ IAnd (Reg RAX, RegOffset (RSP, slot)) ]
+  | Or -> [ IOr (Reg RAX, RegOffset (RSP, slot)) ]
+
+let min_int = Int64.div Int64.min_int 2L
+let max_int = Int64.div Int64.max_int 2L
+let const_true = Int64.of_string "0x8000000000000001"
+let const_false = Int64.of_string "0x0000000000000001"
 
 let rec compile (exp : exp) (env : env) : instruction list =
   match exp with
-  | Num n -> [ IMov (Reg RAX, Const n) ]
+  | Num n ->
+      if n > max_int || n < min_int then
+        failwith ("Integer Overflow: " ^ Int64.to_string n)
+      else [ IMov (Reg RAX, Const (Int64.shift_left n 1)) ]
+  | Bool true -> [ IMov (Reg RAX, Const const_true) ]
+  | Bool false -> [ IMov (Reg RAX, Const const_false) ]
   | Id x ->
       let slot = lookup x env in
       [ IMov (Reg RAX, RegOffset (RSP, slot)) ]
@@ -138,12 +176,8 @@ let rec compile (exp : exp) (env : env) : instruction list =
       let done_label = gensym "done" in
       compile cond env
       @ [ ICmp (Reg RAX, Const 0L) ]
-      @ [ IJe else_label ]
-      @ compile true_path env
-      @ [ IJmp done_label]
-      @ [ ILabel else_label ]
-      @ compile false_path env
-      @ [ ILabel done_label ]
+      @ [ IJe else_label ] @ compile true_path env @ [ IJmp done_label ]
+      @ [ ILabel else_label ] @ compile false_path env @ [ ILabel done_label ]
 
 let compile_prog (e : exp) : string =
   let instructions = compile e [] in
@@ -155,6 +189,8 @@ let compile_prog (e : exp) : string =
 
 let rec parse (sexp : sexp) : exp =
   match sexp with
+  | `Atom "true" -> Bool true
+  | `Atom "false" -> Bool false
   | `Atom a -> (
       match Int64.of_string_opt a with Some n -> Num n | None -> Id a)
   | `List [ `Atom "add1"; exp ] -> UnaryOp (Add1, parse exp)
@@ -163,6 +199,9 @@ let rec parse (sexp : sexp) : exp =
   | `List [ `Atom "+"; exp1; exp2 ] -> BinaryOp (Plus, parse exp1, parse exp2)
   | `List [ `Atom "-"; exp1; exp2 ] -> BinaryOp (Minus, parse exp1, parse exp2)
   | `List [ `Atom "*"; exp1; exp2 ] -> BinaryOp (Times, parse exp1, parse exp2)
+  | `List [ `Atom "and"; exp1; exp2 ] -> BinaryOp (And, parse exp1, parse exp2)
+  | `List [ `Atom "or"; exp1; exp2 ] -> BinaryOp (Or, parse exp1, parse exp2)
+  | `List [ `Atom "not"; exp ] -> UnaryOp (Not, parse exp)
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)
   | `List [ `Atom "if"; cond; true_path; false_path ] ->

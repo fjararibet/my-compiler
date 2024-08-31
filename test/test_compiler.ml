@@ -87,31 +87,31 @@ let test_parse_nested_let () =
 
 let test_compile_int () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L) ]
+    [ IMov (Reg RAX, Const 10L) ]
     (compile (Num 5L) [])
 
 let test_compile_add1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L); IInc (Reg RAX) ]
+    [ IMov (Reg RAX, Const 10L); IAdd (Reg RAX, Const 2L)]
     (compile (UnaryOp (Add1, Num 5L)) [])
 
 let test_compile_sub1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L); IDec (Reg RAX) ]
+    [ IMov (Reg RAX, Const 10L); ISub (Reg RAX, Const 2L)]
     (compile (UnaryOp (Sub1, Num 5L)) [])
 
 let test_compile_double () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Reg RAX) ]
+    [ IMov (Reg RAX, Const 10L); IAdd (Reg RAX, Reg RAX) ]
     (compile (UnaryOp (Double, Num 5L)) [])
 
 let test_compile_compound () =
   check ins_list "same instruction list"
     [
-      IMov (Reg RAX, Const 5L);
-      IDec (Reg RAX);
-      IDec (Reg RAX);
-      IInc (Reg RAX);
+      IMov (Reg RAX, Const 10L);
+      ISub (Reg RAX, Const 2L);
+      ISub (Reg RAX, Const 2L);
+      IAdd (Reg RAX, Const 2L);
       IAdd (Reg RAX, Reg RAX);
     ]
     (compile
@@ -121,7 +121,7 @@ let test_compile_compound () =
 let test_compile_let () =
   check ins_list "same instruction list"
     [
-      IMov (Reg RAX, Const 5L);
+      IMov (Reg RAX, Const 10L);
       IMov (RegOffset (RSP, 1), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 1));
     ]
@@ -130,19 +130,19 @@ let test_compile_let () =
 let test_compile_nested_let () =
   check ins_list "same instruction list"
     [
-      IMov (Reg RAX, Const 10L);
+      IMov (Reg RAX, Const 20L);
       IMov (RegOffset (RSP, 1), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 1));
-      IInc (Reg RAX);
+      IAdd (Reg RAX, Const 2L);
       IMov (RegOffset (RSP, 2), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IInc (Reg RAX);
+      IAdd (Reg RAX, Const 2L);
       IMov (RegOffset (RSP, 3), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IInc (Reg RAX);
+      IAdd (Reg RAX, Const 2L);
       IMov (RegOffset (RSP, 2), Reg RAX);
       IMov (Reg RAX, RegOffset (RSP, 2));
-      IInc (Reg RAX);
+      IAdd (Reg RAX, Const 2L);
     ]
     (compile
        (Let
