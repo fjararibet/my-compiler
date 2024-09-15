@@ -77,7 +77,16 @@ let rec compile (exp : exp) (env : env) : instruction list =
 
 let compile_prog (e : exp) : string =
   let instructions = compile e [] in
-  let asm_string = asm_to_string (instructions @ [ IRet ]) in
+  let asm_string =
+    asm_to_string @@ [ IPush (Reg RBP) ]
+    @ [ IMov (Reg RBP, Reg RSP) ]
+    @ [ ISub (Reg RSP, Const 100L) ]
+      (* meanwhile, allocate space for 100 variables *)
+    @ instructions
+    @ [ IMov (Reg RSP, Reg RBP) ]
+    @ [ IPop (Reg RBP) ]
+    @ [ IRet ]
+  in
   let prelude =
     "\nsection .text\nglobal our_code_starts_here\nour_code_starts_here:"
   in

@@ -1,12 +1,13 @@
 open Printf
 
-type reg = RAX | RBX | RSP
+type reg = RAX | RBX | RSP | RBP
 
 type arg =
   | Const of int64
   | Reg of reg
   | RegOffset of
       reg * int (* RegOffset(reg, i) represents address [reg - 8*i] *)
+
 type instruction =
   | IAdd of arg * arg
   | ISub of arg * arg
@@ -23,10 +24,12 @@ type instruction =
   | IAnd of arg * arg
   | IOr of arg * arg
   | IXor of arg * arg
+  | IPush of arg
+  | IPop of arg
   | IRet
 
 let string_of_reg (reg : reg) : string =
-  match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP"
+  match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP" | RBP -> "RBP"
 
 let string_of_arg (arg : arg) : string =
   match arg with
@@ -47,9 +50,12 @@ let rec asm_to_string (asm : instruction list) : string =
   | ISub (a1, a2) :: rest ->
       sprintf "  sub %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
-  | IMul a :: rest -> sprintf "  mul %s\n" (string_of_arg a) ^ asm_to_string rest
-  | IInc a :: rest -> sprintf "  inc %s\n" (string_of_arg a) ^ asm_to_string rest
-  | IDec a :: rest -> sprintf "  dec %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IMul a :: rest ->
+      sprintf "  mul %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IInc a :: rest ->
+      sprintf "  inc %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IDec a :: rest ->
+      sprintf "  dec %s\n" (string_of_arg a) ^ asm_to_string rest
   | ILabel label :: rest -> sprintf "%s:\n" label ^ asm_to_string rest
   | ICmp (a1, a2) :: rest ->
       sprintf "  cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2)
@@ -70,4 +76,5 @@ let rec asm_to_string (asm : instruction list) : string =
       sprintf "  xor %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | IRet :: rest -> "  ret" ^ asm_to_string rest
-
+  | IPush a :: rest -> sprintf "  push %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IPop a :: rest -> sprintf "  pop %s\n" (string_of_arg a) ^ asm_to_string rest
