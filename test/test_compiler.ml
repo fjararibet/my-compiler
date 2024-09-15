@@ -2,6 +2,8 @@ open Lib.Compiler
 open Lib.Ast
 open Lib.Asm
 open Lib.Parser
+open Bbctester.Test
+open Printf
 open Alcotest
 
 let exp : exp testable =
@@ -95,12 +97,12 @@ let test_compile_int () =
 
 let test_compile_add1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 10L); IAdd (Reg RAX, Const 2L)]
+    [ IMov (Reg RAX, Const 10L); IAdd (Reg RAX, Const 2L) ]
     (compile (UnaryOp (Add1, Num 5L)) [])
 
 let test_compile_sub1 () =
   check ins_list "same instruction list"
-    [ IMov (Reg RAX, Const 10L); ISub (Reg RAX, Const 2L)]
+    [ IMov (Reg RAX, Const 10L); ISub (Reg RAX, Const 2L) ]
     (compile (UnaryOp (Sub1, Num 5L)) [])
 
 let test_compile_double () =
@@ -161,24 +163,24 @@ let test_compile_nested_let () =
        [])
 
 let test_asm_to_string_int () =
-  check string "same asm string" "mov RAX, 5\n"
+  check string "same asm string" "  mov RAX, 5\n"
     (asm_to_string [ IMov (Reg RAX, Const 5L) ])
 
 let test_asm_to_string_add1 () =
-  check string "same asm string" "mov RAX, 5\ninc RAX\n"
+  check string "same asm string" "  mov RAX, 5\n  inc RAX\n"
     (asm_to_string [ IMov (Reg RAX, Const 5L); IInc (Reg RAX) ])
 
 let test_asm_to_string_sub1 () =
-  check string "same asm string" "mov RAX, 5\ndec RAX\n"
+  check string "same asm string" "  mov RAX, 5\n  dec RAX\n"
     (asm_to_string [ IMov (Reg RAX, Const 5L); IDec (Reg RAX) ])
 
 let test_asm_to_string_double () =
-  check string "same asm string" "mov RAX, 5\nadd RAX, RAX\n"
+  check string "same asm string" "  mov RAX, 5\n  add RAX, RAX\n"
     (asm_to_string [ IMov (Reg RAX, Const 5L); IAdd (Reg RAX, Reg RAX) ])
 
 let test_asm_to_string_compound () =
   check string "same asm string"
-    "mov RAX, 5\ndec RAX\ndec RAX\ninc RAX\nadd RAX, RAX\n"
+    "  mov RAX, 5\n  dec RAX\n  dec RAX\n  inc RAX\n  add RAX, RAX\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 5L);
@@ -190,7 +192,7 @@ let test_asm_to_string_compound () =
 
 let test_asm_to_string_let () =
   check string "same asm string"
-    "mov RAX, 5\nmov [RSP - 8*1], RAX\nmov RAX, [RSP - 8*1]\n"
+    "  mov RAX, 5\n  mov [RSP - 8*1], RAX\n  mov RAX, [RSP - 8*1]\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 5L);
@@ -200,19 +202,19 @@ let test_asm_to_string_let () =
 
 let test_asm_to_string_nested_let () =
   check string "same asm string"
-    "mov RAX, 10\n\
-     mov [RSP - 8*1], RAX\n\
-     mov RAX, [RSP - 8*1]\n\
-     inc RAX\n\
-     mov [RSP - 8*2], RAX\n\
-     mov RAX, [RSP - 8*2]\n\
-     inc RAX\n\
-     mov [RSP - 8*3], RAX\n\
-     mov RAX, [RSP - 8*2]\n\
-     inc RAX\n\
-     mov [RSP - 8*2], RAX\n\
-     mov RAX, [RSP - 8*2]\n\
-     inc RAX\n"
+    "  mov RAX, 10\n\
+    \  mov [RSP - 8*1], RAX\n\
+    \  mov RAX, [RSP - 8*1]\n\
+    \  inc RAX\n\
+    \  mov [RSP - 8*2], RAX\n\
+    \  mov RAX, [RSP - 8*2]\n\
+    \  inc RAX\n\
+    \  mov [RSP - 8*3], RAX\n\
+    \  mov RAX, [RSP - 8*2]\n\
+    \  inc RAX\n\
+    \  mov [RSP - 8*2], RAX\n\
+    \  mov RAX, [RSP - 8*2]\n\
+    \  inc RAX\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 10L);
@@ -230,37 +232,46 @@ let test_asm_to_string_nested_let () =
          IInc (Reg RAX);
        ])
 
+let ocaml_tests =
+  [
+    ( "parse",
+      [
+        test_case "A number" `Quick test_parse_int;
+        test_case "An add1" `Quick test_parse_add1;
+        test_case "A sub1" `Quick test_parse_sub1;
+        test_case "A double" `Quick test_parse_double;
+        test_case "A compound expression" `Quick test_parse_compound;
+        test_case "A let binding" `Quick test_parse_let;
+        test_case "A nested let binding" `Quick test_parse_nested_let;
+      ] );
+    ( "compile",
+      [
+        test_case "A number" `Quick test_compile_int;
+        test_case "An add1" `Quick test_compile_add1;
+        test_case "A sub1" `Quick test_compile_sub1;
+        test_case "A double" `Quick test_compile_double;
+        test_case "A compound expression" `Quick test_compile_compound;
+        test_case "A let binding" `Quick test_compile_let;
+        test_case "A nested let binding" `Quick test_compile_nested_let;
+      ] );
+    ( "asm to string",
+      [
+        test_case "A number" `Quick test_asm_to_string_int;
+        test_case "An add1" `Quick test_asm_to_string_add1;
+        test_case "A sub1" `Quick test_asm_to_string_sub1;
+        test_case "A double" `Quick test_asm_to_string_double;
+        test_case "A compound asm" `Quick test_asm_to_string_compound;
+        test_case "A let binding" `Quick test_asm_to_string_let;
+        test_case "A nested let binding" `Quick test_asm_to_string_nested_let;
+      ] );
+  ]
+
 let () =
-  run "A compiler"
-    [
-      ( "parse",
-        [
-          test_case "A number" `Quick test_parse_int;
-          test_case "An add1" `Quick test_parse_add1;
-          test_case "A sub1" `Quick test_parse_sub1;
-          test_case "A double" `Quick test_parse_double;
-          test_case "A compound expression" `Quick test_parse_compound;
-          test_case "A let binding" `Quick test_parse_let;
-          test_case "A nested let binding" `Quick test_parse_nested_let;
-        ] );
-      ( "compile",
-        [
-          test_case "A number" `Quick test_compile_int;
-          test_case "An add1" `Quick test_compile_add1;
-          test_case "A sub1" `Quick test_compile_sub1;
-          test_case "A double" `Quick test_compile_double;
-          test_case "A compound expression" `Quick test_compile_compound;
-          test_case "A let binding" `Quick test_compile_let;
-          test_case "A nested let binding" `Quick test_compile_nested_let;
-        ] );
-      ( "asm to string",
-        [
-          test_case "A number" `Quick test_asm_to_string_int;
-          test_case "An add1" `Quick test_asm_to_string_add1;
-          test_case "A sub1" `Quick test_asm_to_string_sub1;
-          test_case "A double" `Quick test_asm_to_string_double;
-          test_case "A compound asm" `Quick test_asm_to_string_compound;
-          test_case "A let binding" `Quick test_asm_to_string_let;
-          test_case "A nested let binding" `Quick test_asm_to_string_nested_let;
-        ] );
-    ]
+  let bbc_tests =
+    let compile_flags = Option.value (Sys.getenv_opt "CFLAGS") ~default:"-g" in
+    let compiler : string -> out_channel -> unit =
+     fun s o -> fprintf o "%s" (compile_prog (parse (sexp_from_string s)))
+    in
+    tests_from_dir ~compile_flags ~compiler ~runtime:"main.c" "bbctests"
+  in
+  run "Tests entrega 1" (ocaml_tests @ bbc_tests)

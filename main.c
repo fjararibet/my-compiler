@@ -10,7 +10,7 @@ const VAL BOOL_TRUE = 0x8000000000000001;
 const VAL BOOL_FALSE = 0x0000000000000001;
 VAL print(VAL val) {
   if ((val & BOOL_TAG) == 0) {
-    printf("%" PRId64, (VAL)val / 2);
+    printf("%" PRId64, (int64_t)val / 2);
   } else if (val == BOOL_TRUE) {
     printf("true");
   } else if (val == BOOL_FALSE) {

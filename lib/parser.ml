@@ -1,5 +1,6 @@
 open Ast
 open CCSexp
+open Printf
 
 let rec parse (sexp : sexp) : exp =
   match sexp with
@@ -21,3 +22,8 @@ let rec parse (sexp : sexp) : exp =
   | `List [ `Atom "if"; cond; true_path; false_path ] ->
       If (parse cond, parse true_path, parse false_path)
   | _ -> failwith "Not a valid exp"
+
+let sexp_from_string (src : string) : CCSexp.sexp =
+  match CCSexp.parse_string src with
+  | Ok s -> s
+  | Error msg -> failwith (sprintf "Unable to parse src %s: %s" src msg)

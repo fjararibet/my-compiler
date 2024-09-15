@@ -61,7 +61,8 @@ let rec compile (exp : exp) (env : env) : instruction list =
       let else_label = gensym "if_false" in
       let done_label = gensym "done" in
       compile cond env
-      @ [ ICmp (Reg RAX, Const 0L) ]
+      @ [ IMov (Reg RBX, Const const_false) ]
+      @ [ ICmp (Reg RAX, Reg RBX) ]
       @ [ IJe else_label ] @ compile true_path env @ [ IJmp done_label ]
       @ [ ILabel else_label ] @ compile false_path env @ [ ILabel done_label ]
 

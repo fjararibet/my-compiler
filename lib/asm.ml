@@ -38,34 +38,34 @@ let rec asm_to_string (asm : instruction list) : string =
   match asm with
   | [] -> ""
   | IMov (a1, a2) :: rest ->
-      sprintf "mov %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  mov %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | IAdd (a1, a2) :: rest ->
-      sprintf "add %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  add %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | ISub (a1, a2) :: rest ->
-      sprintf "sub %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  sub %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
-  | IMul a :: rest -> sprintf "mul %s\n" (string_of_arg a) ^ asm_to_string rest
-  | IInc a :: rest -> sprintf "inc %s\n" (string_of_arg a) ^ asm_to_string rest
-  | IDec a :: rest -> sprintf "dec %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IMul a :: rest -> sprintf "  mul %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IInc a :: rest -> sprintf "  inc %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IDec a :: rest -> sprintf "  dec %s\n" (string_of_arg a) ^ asm_to_string rest
   | ILabel label :: rest -> sprintf "%s:\n" label ^ asm_to_string rest
   | ICmp (a1, a2) :: rest ->
-      sprintf "cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  cmp %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
-  | IJmp label :: rest -> sprintf "jmp %s\n" label ^ asm_to_string rest
-  | IJe label :: rest -> sprintf "je %s\n" label ^ asm_to_string rest
+  | IJmp label :: rest -> sprintf "  jmp %s\n" label ^ asm_to_string rest
+  | IJe label :: rest -> sprintf "  je %s\n" label ^ asm_to_string rest
   | ISar (a1, a2) :: rest ->
-      sprintf "sar %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  sar %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | IAnd (a1, a2) :: rest ->
-      sprintf "and %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  and %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | IOr (a1, a2) :: rest ->
-      sprintf "or %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  or %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
   | IXor (a1, a2) :: rest ->
-      sprintf "xor %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      sprintf "  xor %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
-  | IRet :: rest -> "ret" ^ asm_to_string rest
+  | IRet :: rest -> "  ret" ^ asm_to_string rest
 

@@ -1,1 +1,1 @@
-(and (or true false) (and (not true) true))
+(if false 1 -1)

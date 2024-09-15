@@ -1,0 +1,7 @@
+NAME: negative number
+DESCRIPTION: evaluates a negative number
+SRC:
+-19
+EXPECTED:
+-19
+
