@@ -16,6 +16,7 @@ let rec parse (sexp : sexp) : exp =
   | `List [ `Atom "*"; exp1; exp2 ] -> BinaryOp (Times, parse exp1, parse exp2)
   | `List [ `Atom "and"; exp1; exp2 ] -> If (parse exp1, parse exp2, Bool false)
   | `List [ `Atom "or"; exp1; exp2 ] -> If (parse exp1, Bool true, parse exp2)
+  | `List [ `Atom "<"; exp1; exp2 ] -> BinaryOp (Lt ,parse exp1, parse exp2)
   | `List [ `Atom "not"; exp ] -> UnaryOp (Not, parse exp)
   | `List [ `Atom "let"; `List [ `Atom x; value ]; body ] ->
       Let (x, parse value, parse body)

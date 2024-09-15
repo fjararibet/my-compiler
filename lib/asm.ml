@@ -17,6 +17,7 @@ type instruction =
   | ILabel of string
   | IJmp of string
   | IJe of string
+  | IJl of string
   | ICmp of arg * arg
   | ISar of arg * arg
   | IAnd of arg * arg
@@ -55,6 +56,7 @@ let rec asm_to_string (asm : instruction list) : string =
       ^ asm_to_string rest
   | IJmp label :: rest -> sprintf "  jmp %s\n" label ^ asm_to_string rest
   | IJe label :: rest -> sprintf "  je %s\n" label ^ asm_to_string rest
+  | IJl label :: rest -> sprintf "  jl %s\n" label ^ asm_to_string rest
   | ISar (a1, a2) :: rest ->
       sprintf "  sar %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest

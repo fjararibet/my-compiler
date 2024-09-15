@@ -8,6 +8,11 @@ let gensym =
     counter := !counter + 1;
     sprintf "%s%d" prefix !counter
 
+let min_int = Int64.div Int64.min_int 2L
+let max_int = Int64.div Int64.max_int 2L
+let const_true = Int64.of_string "0x8000000000000001"
+let const_false = Int64.of_string "0x0000000000000001"
+
 let compile_unary (op : unary_op) =
   match op with
   | Add1 -> [ IAdd (Reg RAX, Const 2L) ]
@@ -27,11 +32,14 @@ let compile_binary (op : binary_op) (slot : int) =
       [ IMov (Reg RBX, RegOffset (RSP, slot)) ]
       @ [ IMul (Reg RBX) ]
       @ [ ISar (Reg RAX, Const 1L) ]
-
-let min_int = Int64.div Int64.min_int 2L
-let max_int = Int64.div Int64.max_int 2L
-let const_true = Int64.of_string "0x8000000000000001"
-let const_false = Int64.of_string "0x0000000000000001"
+  | Lt ->
+      let less_label = gensym "less" in
+      [ IMov (Reg RBX, RegOffset (RSP, slot)) ]
+      @ [ ICmp (Reg RBX, Reg RAX) ]
+      @ [ IMov (Reg RAX, Const const_true) ]
+      @ [ IJl less_label ]
+      @ [ IMov (Reg RAX, Const const_false) ]
+      @ [ ILabel less_label ]
 
 let rec compile (exp : exp) (env : env) : instruction list =
   match exp with
@@ -52,8 +60,7 @@ let rec compile (exp : exp) (env : env) : instruction list =
       @ [ IMov (RegOffset (RSP, slot1), Reg RAX) ]
       @ compile e2 env'
       @ [ IMov (RegOffset (RSP, slot2), Reg RAX) ]
-      @ [ IMov (Reg RAX, RegOffset (RSP, slot1)) ]
-      @ compile_binary op slot2
+      @ compile_binary op slot1
   | Let (x, value, body) ->
       let env', slot = add x env in
       compile value env
