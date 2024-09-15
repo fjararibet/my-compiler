@@ -1,4 +1,7 @@
 open Lib.Compiler
+open Lib.Ast
+open Lib.Asm
+open Lib.Parser
 open Alcotest
 
 let exp : exp testable =
