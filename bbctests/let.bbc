@@ -1,0 +1,10 @@
+NAME: nested let bindings
+DESCRIPTION: evaluates nested let bindings
+SRC:
+(let (a 10)
+ (let (c (let (b (add1 a))
+          (let (d (add1 b))
+           (add1 b)))) 
+   (double c)))
+EXPECTED:
+24

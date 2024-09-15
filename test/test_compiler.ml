@@ -127,8 +127,8 @@ let test_compile_let () =
   check ins_list "same instruction list"
     [
       IMov (Reg RAX, Const 10L);
-      IMov (RegOffset (RSP, 1), Reg RAX);
-      IMov (Reg RAX, RegOffset (RSP, 1));
+      IMov (RegOffset (RSP, -1), Reg RAX);
+      IMov (Reg RAX, RegOffset (RSP, -1));
     ]
     (compile (Let ("x", Num 5L, Id "x")) [])
 
@@ -136,17 +136,17 @@ let test_compile_nested_let () =
   check ins_list "same instruction list"
     [
       IMov (Reg RAX, Const 20L);
-      IMov (RegOffset (RSP, 1), Reg RAX);
-      IMov (Reg RAX, RegOffset (RSP, 1));
+      IMov (RegOffset (RSP, -1), Reg RAX);
+      IMov (Reg RAX, RegOffset (RSP, -1));
       IAdd (Reg RAX, Const 2L);
-      IMov (RegOffset (RSP, 2), Reg RAX);
-      IMov (Reg RAX, RegOffset (RSP, 2));
+      IMov (RegOffset (RSP, -2), Reg RAX);
+      IMov (Reg RAX, RegOffset (RSP, -2));
       IAdd (Reg RAX, Const 2L);
-      IMov (RegOffset (RSP, 3), Reg RAX);
-      IMov (Reg RAX, RegOffset (RSP, 2));
+      IMov (RegOffset (RSP, -3), Reg RAX);
+      IMov (Reg RAX, RegOffset (RSP, -2));
       IAdd (Reg RAX, Const 2L);
-      IMov (RegOffset (RSP, 2), Reg RAX);
-      IMov (Reg RAX, RegOffset (RSP, 2));
+      IMov (RegOffset (RSP, -2), Reg RAX);
+      IMov (Reg RAX, RegOffset (RSP, -2));
       IAdd (Reg RAX, Const 2L);
     ]
     (compile
@@ -192,43 +192,43 @@ let test_asm_to_string_compound () =
 
 let test_asm_to_string_let () =
   check string "same asm string"
-    "  mov RAX, 5\n  mov [RSP - 8*1], RAX\n  mov RAX, [RSP - 8*1]\n"
+    "  mov RAX, 5\n  mov [RSP + 8*-1], RAX\n  mov RAX, [RSP + 8*-1]\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 5L);
-         IMov (RegOffset (RSP, 1), Reg RAX);
-         IMov (Reg RAX, RegOffset (RSP, 1));
+         IMov (RegOffset (RSP, -1), Reg RAX);
+         IMov (Reg RAX, RegOffset (RSP, -1));
        ])
 
 let test_asm_to_string_nested_let () =
   check string "same asm string"
     "  mov RAX, 10\n\
-    \  mov [RSP - 8*1], RAX\n\
-    \  mov RAX, [RSP - 8*1]\n\
+    \  mov [RSP + 8*-1], RAX\n\
+    \  mov RAX, [RSP + 8*-1]\n\
     \  inc RAX\n\
-    \  mov [RSP - 8*2], RAX\n\
-    \  mov RAX, [RSP - 8*2]\n\
+    \  mov [RSP + 8*-2], RAX\n\
+    \  mov RAX, [RSP + 8*-2]\n\
     \  inc RAX\n\
-    \  mov [RSP - 8*3], RAX\n\
-    \  mov RAX, [RSP - 8*2]\n\
+    \  mov [RSP + 8*-3], RAX\n\
+    \  mov RAX, [RSP + 8*-2]\n\
     \  inc RAX\n\
-    \  mov [RSP - 8*2], RAX\n\
-    \  mov RAX, [RSP - 8*2]\n\
+    \  mov [RSP + 8*-2], RAX\n\
+    \  mov RAX, [RSP + 8*-2]\n\
     \  inc RAX\n"
     (asm_to_string
        [
          IMov (Reg RAX, Const 10L);
-         IMov (RegOffset (RSP, 1), Reg RAX);
-         IMov (Reg RAX, RegOffset (RSP, 1));
+         IMov (RegOffset (RSP, -1), Reg RAX);
+         IMov (Reg RAX, RegOffset (RSP, -1));
          IInc (Reg RAX);
-         IMov (RegOffset (RSP, 2), Reg RAX);
-         IMov (Reg RAX, RegOffset (RSP, 2));
+         IMov (RegOffset (RSP, -2), Reg RAX);
+         IMov (Reg RAX, RegOffset (RSP, -2));
          IInc (Reg RAX);
-         IMov (RegOffset (RSP, 3), Reg RAX);
-         IMov (Reg RAX, RegOffset (RSP, 2));
+         IMov (RegOffset (RSP, -3), Reg RAX);
+         IMov (Reg RAX, RegOffset (RSP, -2));
          IInc (Reg RAX);
-         IMov (RegOffset (RSP, 2), Reg RAX);
-         IMov (Reg RAX, RegOffset (RSP, 2));
+         IMov (RegOffset (RSP, -2), Reg RAX);
+         IMov (Reg RAX, RegOffset (RSP, -2));
          IInc (Reg RAX);
        ])
 

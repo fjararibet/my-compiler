@@ -33,7 +33,7 @@ let string_of_arg (arg : arg) : string =
   | Const n -> Int64.to_string n
   | Reg r -> string_of_reg r
   | RegOffset (reg, offset) ->
-      sprintf "[%s - 8*%s]" (string_of_reg reg) (string_of_int offset)
+      sprintf "[%s + 8*%s]" (string_of_reg reg) (string_of_int offset)
 
 let rec asm_to_string (asm : instruction list) : string =
   match asm with
