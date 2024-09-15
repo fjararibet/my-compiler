@@ -1,6 +1,6 @@
 open Printf
 
-type reg = RAX | RBX | RSP | RBP
+type reg = RAX | RBX | RSP | RBP | RDI | RSI
 
 type arg =
   | Const of int64
@@ -18,6 +18,7 @@ type instruction =
   | ILabel of string
   | IJmp of string
   | IJe of string
+  | IJnz of string
   | IJl of string
   | ICmp of arg * arg
   | ISar of arg * arg
@@ -26,10 +27,18 @@ type instruction =
   | IXor of arg * arg
   | IPush of arg
   | IPop of arg
+  | ICall of string
+  | ITest of arg * arg
   | IRet
 
 let string_of_reg (reg : reg) : string =
-  match reg with RAX -> "RAX" | RBX -> "RBX" | RSP -> "RSP" | RBP -> "RBP"
+  match reg with
+  | RAX -> "RAX"
+  | RBX -> "RBX"
+  | RSP -> "RSP"
+  | RBP -> "RBP"
+  | RDI -> "RDI"
+  | RSI -> "RSI"
 
 let string_of_arg (arg : arg) : string =
   match arg with
@@ -63,6 +72,7 @@ let rec asm_to_string (asm : instruction list) : string =
   | IJmp label :: rest -> sprintf "  jmp %s\n" label ^ asm_to_string rest
   | IJe label :: rest -> sprintf "  je %s\n" label ^ asm_to_string rest
   | IJl label :: rest -> sprintf "  jl %s\n" label ^ asm_to_string rest
+  | IJnz label :: rest -> sprintf "  jnz %s\n" label ^ asm_to_string rest
   | ISar (a1, a2) :: rest ->
       sprintf "  sar %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
@@ -75,6 +85,12 @@ let rec asm_to_string (asm : instruction list) : string =
   | IXor (a1, a2) :: rest ->
       sprintf "  xor %s, %s\n" (string_of_arg a1) (string_of_arg a2)
       ^ asm_to_string rest
-  | IRet :: rest -> "  ret" ^ asm_to_string rest
-  | IPush a :: rest -> sprintf "  push %s\n" (string_of_arg a) ^ asm_to_string rest
-  | IPop a :: rest -> sprintf "  pop %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IRet :: rest -> "  ret\n" ^ asm_to_string rest
+  | IPush a :: rest ->
+      sprintf "  push %s\n" (string_of_arg a) ^ asm_to_string rest
+  | IPop a :: rest ->
+      sprintf "  pop %s\n" (string_of_arg a) ^ asm_to_string rest
+  | ICall a :: rest -> sprintf "  call %s\n" a ^ asm_to_string rest
+  | ITest (a1, a2) :: rest ->
+      sprintf "  test %s, %s\n" (string_of_arg a1) (string_of_arg a2)
+      ^ asm_to_string rest

@@ -12,6 +12,7 @@ let min_int = Int64.div Int64.min_int 2L
 let max_int = Int64.div Int64.max_int 2L
 let const_true = Int64.of_string "0x8000000000000001"
 let const_false = Int64.of_string "0x0000000000000001"
+let bool_tag = 1L
 
 let compile_unary (op : unary_op) =
   match op with
@@ -24,9 +25,14 @@ let compile_unary (op : unary_op) =
       ]
   | Double -> [ IAdd (Reg RAX, Reg RAX) ]
 
+let error_label = "error_not_number"
+let test_int = [ ITest (Reg RAX, Const bool_tag) ] @ [ IJnz error_label ]
+
 let compile_binary (op : binary_op) (slot : int) =
   match op with
-  | Plus -> [ IAdd (Reg RAX, RegOffset (RSP, -slot)) ]
+  | Plus ->
+      [ IJmp error_label ] @ test_int
+      @ [ IAdd (Reg RAX, RegOffset (RSP, -slot)) ]
   | Minus -> [ ISub (Reg RAX, RegOffset (RSP, -slot)) ]
   | Times ->
       [ IMov (Reg RBX, RegOffset (RSP, -slot)) ]
@@ -84,10 +90,15 @@ let compile_prog (e : exp) : string =
       (* meanwhile, allocate space for 100 variables *)
     @ instructions
     @ [ IMov (Reg RSP, Reg RBP) ]
-    @ [ IPop (Reg RBP) ]
-    @ [ IRet ]
+    @ [ IPop (Reg RBP) ] @ [ IRet ] @ [ ILabel error_label ]
+    @ [ IMov (Reg RSI, Reg RAX) ]
+    @ [ IMov (Reg RDI, Const 1L) ]
+    @ [ ICall "error" ]
   in
   let prelude =
-    "\nsection .text\nglobal our_code_starts_here\nour_code_starts_here:"
+    "section .text\n\
+     extern error\n\
+     global our_code_starts_here\n\
+     our_code_starts_here:"
   in
   prelude ^ "\n" ^ asm_string
