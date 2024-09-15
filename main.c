@@ -24,5 +24,6 @@ VAL print(VAL val) {
 int main(int argc, char **argv) {
   VAL result = our_code_starts_here();
   print(result);
+  printf("\n");
   return 0;
 }

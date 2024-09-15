@@ -1,0 +1,6 @@
+NAME: shortcircuit and
+DESCRIPTION: evaluates a shortcircuit and
+SRC:
+(and false 11)
+EXPECTED:
+false

@@ -1,7 +1,7 @@
 open Printf
 
 type unary_op = Add1 | Sub1 | Double | Not
-type binary_op = Plus | Minus | Times | And | Or
+type binary_op = Plus | Minus | Times
 
 type exp =
   | Num of int64
@@ -27,7 +27,7 @@ let string_of_unary_op (op : unary_op) : string =
   match op with Add1 -> "add1" | Sub1 -> "sub1" | Double -> "double" | Not -> "not"
 
 let string_of_binary_op (op : binary_op) : string =
-  match op with Plus -> "+" | Minus -> "-" | Times -> "*" | And -> "and" | Or -> "Or"
+  match op with Plus -> "+" | Minus -> "-" | Times -> "*"
 
 let rec string_of_exp (exp : exp) : string =
   match exp with

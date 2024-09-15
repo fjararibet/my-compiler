@@ -12,7 +12,11 @@ let compile_unary (op : unary_op) =
   match op with
   | Add1 -> [ IAdd (Reg RAX, Const 2L) ]
   | Sub1 -> [ ISub (Reg RAX, Const 2L) ]
-  | Not -> [ IMov (Reg RBX, Const (Int64.of_string "0x8000000000000000")); IXor (Reg RAX, Reg RBX ) ]
+  | Not ->
+      [
+        IMov (Reg RBX, Const (Int64.of_string "0x8000000000000000"));
+        IXor (Reg RAX, Reg RBX);
+      ]
   | Double -> [ IAdd (Reg RAX, Reg RAX) ]
 
 let compile_binary (op : binary_op) (slot : int) =
@@ -23,8 +27,6 @@ let compile_binary (op : binary_op) (slot : int) =
       [ IMov (Reg RBX, RegOffset (RSP, slot)) ]
       @ [ IMul (Reg RBX) ]
       @ [ ISar (Reg RAX, Const 1L) ]
-  | And -> [ IAnd (Reg RAX, RegOffset (RSP, slot)) ]
-  | Or -> [ IOr (Reg RAX, RegOffset (RSP, slot)) ]
 
 let min_int = Int64.div Int64.min_int 2L
 let max_int = Int64.div Int64.max_int 2L
